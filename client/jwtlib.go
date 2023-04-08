@@ -37,7 +37,7 @@ func CheckAuth(verifier JwtVerifier, serviceName string) gin.HandlerFunc {
 		}
 
 		if !claims.VerifyAudience(serviceName, true) {
-			errMsg, _ := fmt.Printf("invalid audience: expected %q, got %v", serviceName, claims.Audience)
+			errMsg := fmt.Sprintf("invalid audience: expected %q, got %v", serviceName, claims.Audience)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": errMsg})
 			return
 		}
