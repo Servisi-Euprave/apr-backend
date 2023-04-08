@@ -1,7 +1,6 @@
 package main
 
 import (
-	"apr-backend/client"
 	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
@@ -9,10 +8,13 @@ import (
 	"apr-backend/internal/services"
 	"context"
 	"database/sql"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,11 +29,21 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	mysqlDb, err := sql.Open("mysql", "apr:bBfg3wV7mngCYvCIvX2Iqdv2X7oaivjzIOfk7KxY@/apr")
+	dbUsr := "apr"
+	dbPass, err := ioutil.ReadFile("../db_pass.key")
+	sqlConStr := fmt.Sprintf("%s:%s@/apr", dbUsr, strings.TrimSpace(string(dbPass)))
+	mysqlDb, err := sql.Open("mysql", sqlConStr)
 	if err != nil {
-		panic(err.Error())
+		logger.Println(err.Error())
+		return
 	}
 	defer mysqlDb.Close()
+
+	err = mysqlDb.Ping()
+	if err != nil {
+		logger.Println(err.Error())
+		return
+	}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("sex", model.ValidateSex)
@@ -40,14 +52,16 @@ func main() {
 	userRepo := db.NewUserRepo(mysqlDb)
 	authServ := services.NewAuthService(userRepo)
 	userServ := services.NewUserService(userRepo)
-	authCtr := controllers.NewAuthController(authServ)
+
+	jwtGenerator, err := auth.NewJwtGenerator("../private.pem")
+	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
 	userCtr := controllers.NewUserController(userServ)
-	jwtGenerator, err := auth.NewJwtGenerator("/run/secrets/apr_rsa_private")
 	if err != nil {
+		logger.Println(err.Error())
 		return
 	}
 
-	router.Use(client.CheckAuth(jwtGenerator, client.Apr))
+	// router.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	authGroup := router.Group("/api/auth")
 	{
 		authGroup.POST("/login", authCtr.Login)

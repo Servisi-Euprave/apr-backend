@@ -12,7 +12,7 @@ import (
 
 type JwtGenerator interface {
 	SignJwt(claims jwt.RegisteredClaims) (string, error)
-	ParseJwt(token string) (jwt.RegisteredClaims, error)
+	// ParseJwt(token string) (jwt.RegisteredClaims, error)
 }
 
 func NewJwtGenerator(privateKeyFile string) (JwtGenerator, error) {
