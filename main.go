@@ -1,6 +1,8 @@
 package main
 
 import (
+	"apr-backend/client"
+	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
 	"apr-backend/internal/model"
@@ -40,7 +42,12 @@ func main() {
 	userServ := services.NewUserService(userRepo)
 	authCtr := controllers.NewAuthController(authServ)
 	userCtr := controllers.NewUserController(userServ)
+	jwtGenerator, err := auth.NewJwtGenerator("/run/secrets/apr_rsa_private")
+	if err != nil {
+		return
+	}
 
+	router.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	authGroup := router.Group("/api/auth")
 	{
 		authGroup.POST("/login", authCtr.Login)

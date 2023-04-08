@@ -9,6 +9,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const ServiceID = "apr"
+
 func NewUserController(userServ services.UserService) UserController {
 	return UserController{userService: userServ}
 }
@@ -40,6 +42,6 @@ func (usrCtr UserController) RegisterUser(c *gin.Context) {
 	}
 
 	//TODO: Save session and return actual session ID
-	c.SetCookie("apr_session", "test", 3600, "/", "localhost", false, true)
+	c.SetCookie("apr_jwt", "test", 3600, "/", "localhost", false, true)
 	c.Status(http.StatusOK)
 }
