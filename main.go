@@ -62,6 +62,7 @@ func main() {
 	jwtGenerator := auth.NewJwtGenerator(privateKey)
 	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
 	userCtr := controllers.NewUserController(userServ)
+	comCtr := controllers.NewCompanyController(userServ)
 
 	// router.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	router.POST("/api/auth/login/", authCtr.Login)
@@ -70,6 +71,12 @@ func main() {
 	{
 		userGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
 		userGroup.GET("/:username", userCtr.GetUserByUsername)
+	}
+
+	comGroup := router.Group("/api/company/")
+	{
+		comGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
+		comGroup.POST("/", comCtr.CreateCompany)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}
