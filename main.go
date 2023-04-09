@@ -54,13 +54,14 @@ func main() {
 	authServ := services.NewAuthService(userRepo)
 	userServ := services.NewUserService(userRepo)
 
-	jwtGenerator, err := auth.NewJwtGenerator("../private.pem")
-	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
-	userCtr := controllers.NewUserController(userServ)
+	privateKey, err := auth.ReadRSAPrivateKeyFromFile("../private.pem")
 	if err != nil {
 		logger.Println(err.Error())
 		return
 	}
+	jwtGenerator := auth.NewJwtGenerator(privateKey)
+	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
+	userCtr := controllers.NewUserController(userServ)
 
 	// router.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	router.POST("/api/auth/login/", authCtr.Login)

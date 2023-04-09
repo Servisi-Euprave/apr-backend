@@ -26,12 +26,16 @@ func (usrCtr UserController) RegisterUser(c *gin.Context) {
 	var usr model.User
 
 	if err := c.ShouldBindBodyWith(&usr, binding.JSON); err != nil {
-		errs := err.(validator.ValidationErrors)
+		errs, ok := err.(validator.ValidationErrors)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, "Must provide user as JSON")
+			return
+		}
 		errMsg := make(map[string]string)
 		for _, e := range errs {
-			errMsg[e.Field()] = e.Error()
+			errMsg[e.Field()] = model.UserErrors[e.Field()]
 		}
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, errMsg)
 		return
 	}
 
