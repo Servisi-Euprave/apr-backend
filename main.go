@@ -1,6 +1,7 @@
 package main
 
 import (
+	"apr-backend/client"
 	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
@@ -62,13 +63,12 @@ func main() {
 	}
 
 	// router.Use(client.CheckAuth(jwtGenerator, client.Apr))
-	authGroup := router.Group("/api/auth")
-	{
-		authGroup.POST("/login", authCtr.Login)
-	}
+	router.POST("/api/auth/login/", authCtr.Login)
+	router.POST("/api/user/", userCtr.RegisterUser, authCtr.Login)
 	userGroup := router.Group("/api/user")
 	{
-		userGroup.POST("/", userCtr.RegisterUser)
+		userGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
+		userGroup.GET("/:username", userCtr.GetUserByUsername)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}

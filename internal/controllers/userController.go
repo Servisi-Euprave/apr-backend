@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"apr-backend/client"
 	"apr-backend/internal/model"
 	"apr-backend/internal/services"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -21,13 +24,14 @@ type UserController struct {
 
 func (usrCtr UserController) RegisterUser(c *gin.Context) {
 	var usr model.User
-	if err := c.BindJSON(&usr); err != nil {
+
+	if err := c.ShouldBindBodyWith(&usr, binding.JSON); err != nil {
 		errs := err.(validator.ValidationErrors)
 		errMsg := make(map[string]string)
 		for _, e := range errs {
 			errMsg[e.Field()] = e.Error()
 		}
-		c.JSON(http.StatusBadRequest, errMsg)
+		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -40,8 +44,11 @@ func (usrCtr UserController) RegisterUser(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+}
 
-	//TODO: Save session and return actual session ID
-	c.SetCookie("apr_jwt", "test", 3600, "/", "localhost", false, true)
-	c.Status(http.StatusOK)
+func (usrCtr UserController) GetUserByUsername(c *gin.Context) {
+	if principal, ok := c.Get(client.Principal); ok {
+		log.Printf("Principal: %s\n", principal)
+	}
+	c.JSON(http.StatusOK, gin.H{"username": c.Param("username")})
 }

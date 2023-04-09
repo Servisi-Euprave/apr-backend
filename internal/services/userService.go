@@ -25,7 +25,7 @@ func (userServ userService) SaveUser(user model.User) error {
 	if err != nil {
 		return err
 	}
-	user.Password = hashedPass
+	user.Password = string(hashedPass)
 	if err = userServ.userRepo.SaveUser(user); err != nil {
 		if err == db.DatabaseError {
 			return DatabaseError

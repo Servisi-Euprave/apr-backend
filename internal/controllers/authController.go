@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -26,7 +27,7 @@ type AuthController struct {
 // Login is a handler for user login
 func (controller AuthController) Login(c *gin.Context) {
 	var creds model.CredentialsDto
-	if err := c.BindJSON(&creds); err != nil {
+	if err := c.ShouldBindBodyWith(&creds, binding.JSON); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -41,6 +42,7 @@ func (controller AuthController) Login(c *gin.Context) {
 			return
 		}
 	}
+
 	aud := client.Apr
 	if creds.Service != "" {
 		aud = creds.Service

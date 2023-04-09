@@ -57,7 +57,7 @@ func (userRepo userRepo) SaveUser(user model.User) error {
 	}
 	defer stmt.Close()
 
-	qRes, err := stmt.Exec(user.Phone, user.Email, user.Sex, user.Address, user.Name, user.Lastname, user.Password, user.Username, user.Jmbg)
+	qRes, err := stmt.Exec(user.Phone, user.Email, user.Sex, user.Address, user.Name, user.Lastname, user.Password, []byte(user.Username), user.Jmbg)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		return DatabaseError

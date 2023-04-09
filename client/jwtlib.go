@@ -1,9 +1,13 @@
 package client
 
 import (
+	"crypto"
 	"crypto/rsa"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +36,7 @@ func CheckAuth(verifier JwtVerifier, serviceName string) gin.HandlerFunc {
 		//Check that jwt is valid
 		claims, err := verifier.ParseJwt(tokenStr)
 		if err != nil {
+			log.Println(err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
@@ -51,6 +56,24 @@ func CheckAuth(verifier JwtVerifier, serviceName string) gin.HandlerFunc {
 	}
 }
 
+func ReadRSAPublicKeyFromFile(filePath string) (*rsa.PublicKey, error) {
+	var key *rsa.PublicKey
+	keyFile, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("No key provided, error generating key: %w", err)
+	}
+	defer keyFile.Close()
+	keyData, err := ioutil.ReadAll(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading from key file: %w", err)
+	}
+	key, err = jwt.ParseRSAPublicKeyFromPEM(keyData)
+	if err != nil {
+		return key, fmt.Errorf("Error parsing PMA encoded key: %w", err)
+	}
+	return key, nil
+}
+
 type JwtVerifier interface {
 	ParseJwt(token string) (jwt.RegisteredClaims, error)
 }
@@ -58,30 +81,27 @@ type JwtVerifier interface {
 // NewVerifier() returns a new JwtVerifier instance
 // @pubKey public RSA key of the signee
 // @serviceName used to verify `aud` claims
-func NewVerifier(pubKey rsa.PublicKey) JwtVerifier {
+func NewVerifier(pubKey crypto.PublicKey) JwtVerifier {
 	return defaultJwtVerifier{pubKey: pubKey}
 }
 
 type defaultJwtVerifier struct {
-	pubKey rsa.PublicKey
+	pubKey crypto.PublicKey
 }
 
 func (jwtGen defaultJwtVerifier) keyFunc(t *jwt.Token) (interface{}, error) {
+	if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+		return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
+	}
 	return jwtGen.pubKey, nil
 }
 
 // CheckJwt implements JwtVerifier
 func (jwtGen defaultJwtVerifier) ParseJwt(token string) (jwt.RegisteredClaims, error) {
 	var claims jwt.RegisteredClaims
-	parsed, err := jwt.ParseWithClaims(token, &claims, jwtGen.keyFunc)
+	_, err := jwt.ParseWithClaims(token, &claims, jwtGen.keyFunc)
 	if err != nil {
 		return claims, fmt.Errorf("Cannot parse jwt: %w", err)
-	}
-
-	// Verify method
-	err = parsed.Method.Verify(jwt.SigningMethodRS512.Alg(), parsed.Signature, jwtGen.pubKey)
-	if err != nil {
-		return claims, fmt.Errorf("Wrong signing method: %w", err)
 	}
 	return claims, claims.Valid()
 }
