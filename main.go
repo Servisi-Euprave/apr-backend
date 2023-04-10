@@ -62,7 +62,10 @@ func main() {
 	jwtGenerator := auth.NewJwtGenerator(privateKey)
 	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
 	userCtr := controllers.NewUserController(userServ)
-	comCtr := controllers.NewCompanyController(userServ)
+
+	comRepo := db.NewCompanyRepository(mysqlDb)
+	comServ := services.NewCompanyService(comRepo)
+	comCtr := controllers.NewCompanyController(comServ)
 
 	// router.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	router.POST("/api/auth/login/", authCtr.Login)
