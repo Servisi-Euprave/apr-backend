@@ -7,6 +7,7 @@ import (
 
 type CompanyService interface {
 	SaveCompany(com model.Company) error
+	FindCompanies(filter model.CompanyFilter) ([]model.Company, error)
 }
 
 func NewCompanyService(comRepo db.CompanyRepository) CompanyService {
@@ -17,6 +18,11 @@ func NewCompanyService(comRepo db.CompanyRepository) CompanyService {
 
 type companyService struct {
 	comRepo db.CompanyRepository
+}
+
+// FindCompanies implements CompanyService
+func (cs companyService) FindCompanies(filter model.CompanyFilter) ([]model.Company, error) {
+	return cs.comRepo.FindCompanies(filter)
 }
 
 func (cs companyService) SaveCompany(com model.Company) error {

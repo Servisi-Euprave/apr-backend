@@ -26,3 +26,12 @@ type Nstj struct {
 	Oznaka string `json:"oznaka"`
 	Naziv  string `json:"naziv,omitempty"`
 }
+
+type CompanyFilter struct {
+	OrderBy   string
+	Asc       bool
+	Page      int
+	Mesto     string
+	Sediste   string
+	Delatnost string
+}

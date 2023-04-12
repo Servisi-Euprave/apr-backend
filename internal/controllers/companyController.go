@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"apr-backend/client"
+	"apr-backend/internal/db"
 	"apr-backend/internal/model"
 	"apr-backend/internal/services"
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -60,4 +62,82 @@ func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
 	}
 	c.JSON(http.StatusCreated, "Successfully created company")
 
+}
+
+const (
+	pageQuery      = "page"
+	sortQuery      = "order"
+	delatnostQuery = "delatnost"
+	sedisteQuery   = "sediste"
+	mestoQuery     = "mesto"
+	ascQuery       = "asc"
+)
+
+const (
+	naziv int = iota
+)
+
+func (companyCtr CompanyController) FindCompanies(c *gin.Context) {
+	pageStr, ok := c.GetQuery(pageQuery)
+	page := 0
+	var err error
+	if ok {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 0 {
+			page = 0
+		}
+	}
+	column, ok := c.GetQuery(sortQuery)
+	if !ok {
+		column = "PIB"
+	}
+
+	delatnost, ok := c.GetQuery(delatnostQuery)
+	if !ok {
+		delatnost = ""
+	}
+
+	sediste, ok := c.GetQuery(sedisteQuery)
+	if !ok {
+		sediste = ""
+	}
+
+	mesto, ok := c.GetQuery(mestoQuery)
+	if !ok {
+		mesto = ""
+	}
+
+	ascStr, _ := c.GetQuery(ascQuery)
+	asc := true
+	if ascStr == "false" {
+		asc = false
+	}
+
+	companies, err := companyCtr.comServ.FindCompanies(model.CompanyFilter{
+		OrderBy:   column,
+		Asc:       asc,
+		Page:      page,
+		Mesto:     mesto,
+		Sediste:   sediste,
+		Delatnost: delatnost,
+	})
+
+	if errors.Is(err, db.DatabaseError) {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if errors.Is(err, db.InvalidFilter) {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err != nil {
+		log.Println(err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, companies)
+	return
 }

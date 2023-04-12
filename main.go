@@ -76,10 +76,14 @@ func main() {
 		userGroup.GET("/:username", userCtr.GetUserByUsername)
 	}
 
+	authComGroup := router.Group("/api/company/")
+	{
+		authComGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
+		authComGroup.POST("/", comCtr.CreateCompany)
+	}
 	comGroup := router.Group("/api/company/")
 	{
-		comGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
-		comGroup.POST("/", comCtr.CreateCompany)
+		comGroup.GET("/", comCtr.FindCompanies)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}
