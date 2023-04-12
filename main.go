@@ -2,6 +2,7 @@ package main
 
 import (
 	"apr-backend/client"
+	_ "apr-backend/docs"
 	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
@@ -25,6 +26,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+//go:generate swagger generate spec
 func main() {
 	logger := log.Default()
 	router := gin.New()
@@ -61,7 +63,7 @@ func main() {
 	}
 	jwtGenerator := auth.NewJwtGenerator(privateKey)
 	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
-	userCtr := controllers.NewUserController(userServ)
+	userCtr := controllers.NewUserController(userServ, jwtGenerator)
 
 	comRepo := db.NewCompanyRepository(mysqlDb)
 	comServ := services.NewCompanyService(comRepo)

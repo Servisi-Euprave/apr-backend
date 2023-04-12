@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
 type JwtGenerator interface {
 	SignJwt(claims jwt.RegisteredClaims) (string, error)
+	GenerateAndSignJWT(username, audience string) (string, error)
 	client.JwtVerifier
 }
 
@@ -51,6 +53,24 @@ type jwtGeneratorRsa struct {
 	key         *rsa.PrivateKey
 	serviceName string
 	client.JwtVerifier
+}
+
+// GenerateAndSignJWT implements JwtGenerator
+func (jwtGen jwtGeneratorRsa) GenerateAndSignJWT(username string, audience string) (string, error) {
+
+	aud := client.Apr
+	if audience != "" {
+		aud = audience
+	}
+
+	claims := jwt.RegisteredClaims{
+		Issuer:    client.Apr,
+		Subject:   username,
+		Audience:  []string{aud},
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	}
+	return jwtGen.SignJwt(claims)
 }
 
 func (jwtGen jwtGeneratorRsa) SignJwt(claims jwt.RegisteredClaims) (string, error) {

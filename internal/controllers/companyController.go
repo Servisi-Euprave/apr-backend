@@ -25,6 +25,14 @@ func NewCompanyController(comServ services.CompanyService) CompanyController {
 	}
 }
 
+// swagger:route POST /api/companies/ company CreateCompany
+// Registers a new company for logged-in user.
+// responses:
+//
+//	200: model.Company
+//
+// This text will appear as description of your response body.
+// swagger:response foobarResponse
 func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
 	principal := c.GetString(client.Principal)
 	if principal == "" {
@@ -60,8 +68,7 @@ func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusCreated, "Successfully created company")
-
+	c.JSON(http.StatusCreated, company)
 }
 
 const (

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"apr-backend/client"
+	"apr-backend/internal/auth"
 	"apr-backend/internal/model"
 	"apr-backend/internal/services"
 	"log"
@@ -14,12 +15,16 @@ import (
 
 const ServiceID = "apr"
 
-func NewUserController(userServ services.UserService) UserController {
-	return UserController{userService: userServ}
+func NewUserController(userServ services.UserService, jwtGen auth.JwtGenerator) UserController {
+	return UserController{
+		userService: userServ,
+		jwtGen:      jwtGen,
+	}
 }
 
 type UserController struct {
 	userService services.UserService
+	jwtGen      auth.JwtGenerator
 }
 
 func (usrCtr UserController) RegisterUser(c *gin.Context) {
@@ -48,6 +53,7 @@ func (usrCtr UserController) RegisterUser(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
+	usrCtr.jwtGen.GenerateAndSignJWT(usr.Username, client.Apr)
 }
 
 func (usrCtr UserController) GetUserByUsername(c *gin.Context) {
