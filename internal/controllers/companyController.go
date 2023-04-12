@@ -27,12 +27,21 @@ func NewCompanyController(comServ services.CompanyService) CompanyController {
 
 // swagger:route POST /api/companies/ company CreateCompany
 // Registers a new company for logged-in user.
-// responses:
 //
-//	200: model.Company
+// Parameters:
+// +name: company
+// in: body
+// type: company
+// description: company to be created
 //
+// Security:
+// bearerAuth:
+//
+// Responses:
+// 201: company Company which was created
+// 400:
+// 500:
 // This text will appear as description of your response body.
-// swagger:response foobarResponse
 func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
 	principal := c.GetString(client.Principal)
 	if principal == "" {
@@ -84,6 +93,39 @@ const (
 	naziv int = iota
 )
 
+// swagger:route GET /api/companies/ company FindCompanies
+// Filters, sorts and paginates companies
+//
+// Parameters:
+// +name: page
+// in: query
+// required: false
+// type: integer
+// format: int32
+// +name: order
+// in: query
+// required: false
+// type: string
+// +name: asc
+// in: query
+// required: false
+// type: boolean
+// description: whether to sort ascending or descending.
+// +name: delatnost
+// in: query
+// required: false
+// type: string
+// description: delatnost by which to filter by, must be a valid delatnost
+// +name: mesto
+// in: query
+// required: false
+// type: string
+// description: mesto by which to filter
+//
+// Responses:
+// 201: []company
+// 400:
+// 500:
 func (companyCtr CompanyController) FindCompanies(c *gin.Context) {
 	pageStr, ok := c.GetQuery(pageQuery)
 	page := 0
@@ -98,22 +140,9 @@ func (companyCtr CompanyController) FindCompanies(c *gin.Context) {
 	if !ok {
 		column = "PIB"
 	}
-
-	delatnost, ok := c.GetQuery(delatnostQuery)
-	if !ok {
-		delatnost = ""
-	}
-
-	sediste, ok := c.GetQuery(sedisteQuery)
-	if !ok {
-		sediste = ""
-	}
-
-	mesto, ok := c.GetQuery(mestoQuery)
-	if !ok {
-		mesto = ""
-	}
-
+	delatnost := c.Query(delatnostQuery)
+	sediste := c.Query(sedisteQuery)
+	mesto := c.Query(mestoQuery)
 	ascStr, _ := c.GetQuery(ascQuery)
 	asc := true
 	if ascStr == "false" {

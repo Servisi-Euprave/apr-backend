@@ -27,6 +27,26 @@ type UserController struct {
 	jwtGen      auth.JwtGenerator
 }
 
+// swagger:response
+// Response on successful login or registration, returns a valid JWT used for
+// authentication.
+type jwtResponse struct {
+	// The JWT
+	jwt string
+}
+
+// swagger:route POST /api/user/ users RegisterUser
+// Registers a new user
+// Parameters:
+// +name: user
+// in: body
+// type: user
+// description: User which to register
+//
+// Responses:
+// 201: jwtResponse
+// 400:
+// 500:
 func (usrCtr UserController) RegisterUser(c *gin.Context) {
 	var usr model.User
 
@@ -53,7 +73,15 @@ func (usrCtr UserController) RegisterUser(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	usrCtr.jwtGen.GenerateAndSignJWT(usr.Username, client.Apr)
+
+	jwt, err := usrCtr.jwtGen.GenerateAndSignJWT(usr.Username, client.Apr)
+	if err != nil {
+		c.Status(http.StatusCreated)
+		return
+	}
+	c.JSON(http.StatusCreated, jwtResponse{jwt: jwt})
+	return
+
 }
 
 func (usrCtr UserController) GetUserByUsername(c *gin.Context) {

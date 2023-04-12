@@ -22,7 +22,19 @@ type AuthController struct {
 	jwtGenerator auth.JwtGenerator
 }
 
-// Login is a handler for user login
+// swagger:route POST /api/user/ auth LoginUser
+// Used for user authorization.
+//
+// Parameters:
+// +name: credentials
+// in: body
+// type: credentials
+// description: credentials with which to login
+//
+// Responses:
+// 201: jwtResponse
+// 400:
+// 500:
 func (controller AuthController) Login(c *gin.Context) {
 	var creds model.CredentialsDto
 	if err := c.ShouldBindBodyWith(&creds, binding.JSON); err != nil {
@@ -51,5 +63,5 @@ func (controller AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, token)
+	c.JSON(http.StatusOK, jwtResponse{jwt: token})
 }

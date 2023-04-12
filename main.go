@@ -1,3 +1,25 @@
+// Package classification APR API.
+//
+// This application is used to register companies.
+//
+//	Schemes: http
+//	Host: apr
+//	BasePath: /
+//	Version: 1.0
+//
+//	Consumes:
+//	- application/json
+//
+//	Produces:
+//	- application/json
+//
+//	SecurityDefinitions:
+//	bearerAuth:
+//	     type: apiKey
+//	     in: header
+//	     name: Authorization
+//
+// swagger:meta
 package main
 
 import (
@@ -26,7 +48,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-//go:generate swagger generate spec
 func main() {
 	logger := log.Default()
 	router := gin.New()
