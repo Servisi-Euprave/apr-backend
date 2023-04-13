@@ -10,7 +10,12 @@ var CompanyErrors = map[string]string{
 	"Delatnost":     "Delatnost has to be one of the enum values",
 }
 
-// Company is this application's central model.
+// Company
+//
+// Company represents a registered legal entity. This service
+// is built around this model.
+//
+// It must have a physical place where its headquarters are, denoted by fields Mesto, PostanskiBroj and  Sediste.
 // swagger:model company
 type Company struct {
 	//username of the person who is the owner of the company

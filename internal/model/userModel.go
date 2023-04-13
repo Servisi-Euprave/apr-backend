@@ -12,6 +12,11 @@ var UserErrors = map[string]string{
 	"Password": "Must be between 12 and 72 characters",
 }
 
+// User
+//
+// User represents a physical person who is registered in this service.
+// APR service stores user credentials and personal data.
+//
 //swagger:model user
 type User struct {
 	// Example: +381123123

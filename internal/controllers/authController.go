@@ -22,7 +22,7 @@ type AuthController struct {
 	jwtGenerator auth.JwtGenerator
 }
 
-// swagger:route POST /api/user/ auth LoginUser
+// swagger:route POST /api/auth/login/ auth LoginUser
 // Used for user authorization.
 //
 // Parameters:

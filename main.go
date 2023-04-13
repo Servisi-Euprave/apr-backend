@@ -24,7 +24,6 @@ package main
 
 import (
 	"apr-backend/client"
-	_ "apr-backend/docs"
 	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
@@ -54,8 +53,22 @@ func main() {
 	router.Use(gin.Recovery())
 
 	dbUsr := "apr"
-	dbPass, err := ioutil.ReadFile("../db_pass.key")
-	sqlConStr := fmt.Sprintf("%s:%s@/apr", dbUsr, strings.TrimSpace(string(dbPass)))
+
+	mysqlAddr, ok := os.LookupEnv("MYSQL_ADDR")
+	if !ok {
+		logger.Fatal("MYSQL_ADDR env variable was not set")
+	}
+	dbPassFile, ok := os.LookupEnv("DB_PASS_FILE")
+	if !ok {
+		logger.Fatal("DB_PASS env variable was not set")
+	}
+	rsaKeyFile, ok := os.LookupEnv("RSA_KEY_FILE")
+	if !ok {
+		logger.Fatal("RSA_KEY_FILE env variable was not set")
+	}
+
+	dbPass, err := ioutil.ReadFile(dbPassFile)
+	sqlConStr := fmt.Sprintf("%s:%s@tcp(%s)/apr", dbUsr, strings.TrimSpace(string(dbPass)), mysqlAddr)
 	mysqlDb, err := sql.Open("mysql", sqlConStr)
 	if err != nil {
 		logger.Println(err.Error())
@@ -77,7 +90,7 @@ func main() {
 	authServ := services.NewAuthService(userRepo)
 	userServ := services.NewUserService(userRepo)
 
-	privateKey, err := auth.ReadRSAPrivateKeyFromFile("../private.pem")
+	privateKey, err := auth.ReadRSAPrivateKeyFromFile(rsaKeyFile)
 	if err != nil {
 		logger.Println(err.Error())
 		return
@@ -90,7 +103,6 @@ func main() {
 	comServ := services.NewCompanyService(comRepo)
 	comCtr := controllers.NewCompanyController(comServ)
 
-	// router.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	router.POST("/api/auth/login/", authCtr.Login)
 	router.POST("/api/user/", userCtr.RegisterUser, authCtr.Login)
 	userGroup := router.Group("/api/user")
