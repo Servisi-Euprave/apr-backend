@@ -104,7 +104,7 @@ func main() {
 	comCtr := controllers.NewCompanyController(comServ)
 
 	router.POST("/api/auth/login/", authCtr.Login)
-	router.POST("/api/user/", userCtr.RegisterUser, authCtr.Login)
+	router.POST("/api/user/", userCtr.RegisterUser)
 	userGroup := router.Group("/api/user")
 	{
 		userGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))

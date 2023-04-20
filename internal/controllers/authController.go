@@ -59,9 +59,10 @@ func (controller AuthController) Login(c *gin.Context) {
 
 	token, err := controller.jwtGenerator.GenerateAndSignJWT(creds.Username, aud)
 	if err != nil {
+		log.Printf("error: %s\n", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, jwtResponse{jwt: token})
+	c.JSON(http.StatusOK, JwtResponse{Jwt: token})
 }

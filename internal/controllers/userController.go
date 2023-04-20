@@ -30,9 +30,21 @@ type UserController struct {
 // swagger:response
 // Response on successful login or registration, returns a valid JWT used for
 // authentication.
-type jwtResponse struct {
+type JwtResponse struct {
 	// The JWT
-	jwt string
+	Jwt string `json:"jwt"`
+}
+
+// swagger:response
+// Error is used to specify what kind of error occured when processing request.
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// swagger:response
+// Error is used to specify what kind of error occured when processing request.
+type InvalidBodyResponse struct {
+	ValidationErrors map[string]string
 }
 
 // swagger:route POST /api/user/ users RegisterUser
@@ -45,41 +57,40 @@ type jwtResponse struct {
 //
 // Responses:
 // 201: jwtResponse
-// 400:
-// 500:
+// 400: InvalidStruct
+// 500: errorResponse
 func (usrCtr UserController) RegisterUser(c *gin.Context) {
 	var usr model.User
 
 	if err := c.ShouldBindBodyWith(&usr, binding.JSON); err != nil {
 		errs, ok := err.(validator.ValidationErrors)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusBadRequest, "Must provide user as JSON")
+			c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: "Must provide user as JSON."})
 			return
 		}
 		errMsg := make(map[string]string)
 		for _, e := range errs {
 			errMsg[e.Field()] = model.UserErrors[e.Field()]
 		}
-		c.AbortWithStatusJSON(http.StatusBadRequest, errMsg)
+		c.AbortWithStatusJSON(http.StatusBadRequest, InvalidBodyResponse{ValidationErrors: errMsg})
 		return
 	}
 
 	err := usrCtr.userService.SaveUser(usr)
 	if err == services.DatabaseError {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{"Error when connecting to database."})
 		return
 	}
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{"Internal server error."})
 		return
 	}
 
 	jwt, err := usrCtr.jwtGen.GenerateAndSignJWT(usr.Username, client.Apr)
 	if err != nil {
-		c.Status(http.StatusCreated)
-		return
+		log.Printf("Error creating token: %s", err.Error())
 	}
-	c.JSON(http.StatusCreated, jwtResponse{jwt: jwt})
+	c.JSON(http.StatusCreated, JwtResponse{Jwt: jwt})
 	return
 
 }
