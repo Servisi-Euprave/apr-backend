@@ -11,7 +11,7 @@ type Credentials struct {
 // swagger:model credentials
 type CredentialsDto struct {
 	// Required: true
-	Username string `json:"username"`
+	PIB int `json:"pib"`
 	// Required: true
 	Password string `json:"password"`
 	// Name of service used in aud claim in the JWT.

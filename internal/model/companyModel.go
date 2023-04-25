@@ -18,21 +18,21 @@ var CompanyErrors = map[string]string{
 // It must have a physical place where its headquarters are, denoted by fields Mesto, PostanskiBroj and  Sediste.
 // swagger:model company
 type Company struct {
-	//username of the person who is the owner of the company
-	//Example: Južnobačka Oblast
+	//JMBG of the person who is the owner of the company
+	//Example: 1234567891234
 	//Read Only: true
 	Vlasnik string `json:"vlasnik"`
 	// Unique number which identifies the company for taxes.
 	// Required: true
 	// Example: 15
 	// Unique: true
-	PIB int `json:"pib" binding:"required"`
+	PIB int `json:"pib"`
 	// Unique number which identifies company in the register.
 	// Required: true
 	// Pattern: ^\d{8}$
 	// Example: 12345678
 	// Unique: true
-	MaticniBroj string `json:"maticniBroj" binding:"len=8,number"`
+	MaticniBroj string `json:"maticniBroj"`
 	// Full name of the company.
 	// Required: true
 	// Minimum length: 1
@@ -61,6 +61,11 @@ type Company struct {
 	Delatnost Delatnost `json:"delatnost" binding:"required"`
 	// Required: true
 	Sediste Nstj `json:"sediste"`
+	// Password used for authentication
+	// Required: true
+	// Minimum length: 12
+	// Maximum length: 72
+	Password string `json:"password" binding:"min=12,max=72,required"`
 }
 
 // swagger:model nstj

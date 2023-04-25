@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"apr-backend/client"
+	"apr-backend/internal/auth"
 	"apr-backend/internal/db"
 	"apr-backend/internal/model"
 	"apr-backend/internal/services"
@@ -15,13 +16,35 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type CompanyController struct {
-	comServ services.CompanyService
+// Response on successful login or registration, returns a valid JWT used for
+// authentication.
+// swagger:response
+type JwtResponse struct {
+	// The JWT
+	Jwt string `json:"jwt"`
 }
 
-func NewCompanyController(comServ services.CompanyService) CompanyController {
+// Error is used to specify what kind of error occured when processing request.
+// swagger:response
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+// Error is used to specify field errors on struct.
+// swagger:response
+type InvalidBodyResponse struct {
+	ValidationErrors map[string]string
+}
+
+type CompanyController struct {
+	comServ services.CompanyService
+	jwtGen  auth.JwtGenerator
+}
+
+func NewCompanyController(comServ services.CompanyService, jwtGen auth.JwtGenerator) CompanyController {
 	return CompanyController{
 		comServ: comServ,
+		jwtGen:  jwtGen,
 	}
 }
 
@@ -71,13 +94,19 @@ func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
 	}
 
 	company.Vlasnik = principal
-	err := companyCtr.comServ.SaveCompany(company)
+	err := companyCtr.comServ.SaveCompany(&company)
 	if err != nil {
 		log.Printf("Couldn't save company: %s", err.Error())
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Error when saving to database."})
 		return
 	}
-	c.JSON(http.StatusCreated, company)
+
+	jwt, err := companyCtr.jwtGen.GenerateAndSignJWT(company.PIB, client.Apr)
+	if err != nil {
+		log.Printf("Error creating token: %s", err.Error())
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	c.JSON(http.StatusOK, JwtResponse{Jwt: jwt})
 }
 
 const (

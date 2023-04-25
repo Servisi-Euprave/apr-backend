@@ -11,7 +11,6 @@ import (
 
 var validPassword = regexp.MustCompile("^.{12,72}$")
 var ErrInvalidPassword = errors.New("Password must be between 12 and 72 characters long")
-var DatabaseError = errors.New("Error has occured when connecting to database")
 
 const bcryptCost = 10
 
@@ -23,24 +22,20 @@ type AuthService interface {
 	CheckCredentials(creds model.CredentialsDto) error
 }
 
-func NewAuthService(db db.UserRepo) AuthService {
-	return authService{userRepo: db}
+func NewAuthService(db db.CompanyRepository) AuthService {
+	return authService{comRepo: db}
 }
 
 type authService struct {
-	userRepo db.UserRepo
+	comRepo db.CompanyRepository
 }
 
 // Login implements AuthService
 func (authServ authService) CheckCredentials(creds model.CredentialsDto) error {
-	savedCreds, err := authServ.userRepo.GetOne(creds.Username)
-	if err == db.DatabaseError {
-		return DatabaseError
-	} else if err != nil {
+	savedCreds, err := authServ.comRepo.FindOneCredentials(creds.PIB)
+	if err != db.DatabaseError {
 		return err
 	}
 
-	return bcrypt.CompareHashAndPassword(savedCreds.PasswordHash, []byte(creds.Password))
+	return bcrypt.CompareHashAndPassword([]byte(savedCreds.Password), []byte(creds.Password))
 }
-
-// SaveCredentials implements AuthService

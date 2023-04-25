@@ -14,7 +14,7 @@ import (
 
 type JwtGenerator interface {
 	SignJwt(claims jwt.RegisteredClaims) (string, error)
-	GenerateAndSignJWT(username, audience string) (string, error)
+	GenerateAndSignJWT(principal int, audience string) (string, error)
 	client.JwtVerifier
 }
 
@@ -56,7 +56,7 @@ type jwtGeneratorRsa struct {
 }
 
 // GenerateAndSignJWT implements JwtGenerator
-func (jwtGen jwtGeneratorRsa) GenerateAndSignJWT(username string, audience string) (string, error) {
+func (jwtGen jwtGeneratorRsa) GenerateAndSignJWT(principal int, audience string) (string, error) {
 
 	aud := client.Apr
 	if audience != "" {
@@ -65,7 +65,7 @@ func (jwtGen jwtGeneratorRsa) GenerateAndSignJWT(username string, audience strin
 
 	claims := jwt.RegisteredClaims{
 		Issuer:    client.Apr,
-		Subject:   username,
+		Subject:   string(rune(principal)),
 		Audience:  []string{aud},
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
