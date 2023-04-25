@@ -65,7 +65,7 @@ func (jwtGen jwtGeneratorRsa) GenerateAndSignJWT(principal int, audience string)
 
 	claims := jwt.RegisteredClaims{
 		Issuer:    client.Apr,
-		Subject:   string(rune(principal)),
+		Subject:   fmt.Sprint(principal),
 		Audience:  []string{aud},
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),

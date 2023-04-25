@@ -34,7 +34,7 @@ type companyRepository struct {
 // FindOne implements CompanyRepository
 func (cr companyRepository) FindOne(pib int) (model.Company, error) {
 	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista,
-    postanskiBroj, mesto, maticniBroj, n.oznaka, n.naziv as nstjNaziv
+    postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv
     FROM company c
     LEFT JOIN NSTJ n ON c.sediste = n.oznaka
     WHERE c.PIB = ?`
@@ -46,7 +46,7 @@ func (cr companyRepository) FindOne(pib int) (model.Company, error) {
 	}
 
 	var company model.Company
-	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.MaticniBroj, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
 	if err == sql.ErrNoRows {
 		return model.Company{}, fmt.Errorf("Company with PIB %d not found: %w", pib, NoSuchPibError)
 	}
@@ -82,7 +82,7 @@ func (cr companyRepository) FindOneCredentials(pib int) (model.Company, error) {
 }
 
 func validateColumn(col string) bool {
-	validColumns := []string{"naziv", "vlasnik", "PIB", "maticniBroj", "mesto", "sediste"}
+	validColumns := []string{"naziv", "vlasnik", "PIB", "mesto"}
 	for _, valCol := range validColumns {
 		if col == valCol {
 			return true
@@ -93,7 +93,7 @@ func validateColumn(col string) bool {
 
 // FindCompanies implements CompanyRepository
 func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.Company, error) {
-	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista, postanskiBroj, mesto, maticniBroj, n.oznaka, n.naziv as nstjNaziv
+	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista, postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv
         FROM company c
         LEFT JOIN NSTJ n ON c.sediste = n.oznaka 
         WHERE (? = "" OR delatnost = ?)
@@ -123,7 +123,7 @@ func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.C
 	companies := make([]model.Company, 0, 50)
 	for rows.Next() {
 		var company model.Company
-		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.MaticniBroj, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
 		if err != nil {
 			return companies, fmt.Errorf("%w: couldn't scan company %#v", DatabaseError, company)
 		}

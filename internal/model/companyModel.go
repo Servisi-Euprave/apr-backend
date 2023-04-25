@@ -32,7 +32,7 @@ type Company struct {
 	// Pattern: ^\d{8}$
 	// Example: 12345678
 	// Unique: true
-	MaticniBroj string `json:"maticniBroj"`
+	MaticniBroj int `json:"maticniBroj"`
 	// Full name of the company.
 	// Required: true
 	// Minimum length: 1
@@ -55,7 +55,7 @@ type Company struct {
 	// Required: true
 	// Pattern: ^\d{,20}$
 	// Example: 21000
-	PostanskiBroj string `json:"postanskiBroj" binding:"number,max=20"`
+	PostanskiBroj string `json:"postanskiBroj" binding:"required,number,max=20"`
 	// Required: true
 	// Example: EDUKACIJA
 	Delatnost Delatnost `json:"delatnost" binding:"required"`
@@ -65,7 +65,7 @@ type Company struct {
 	// Required: true
 	// Minimum length: 12
 	// Maximum length: 72
-	Password string `json:"password" binding:"min=12,max=72,required"`
+	Password string `json:"password,omitempty" binding:"min=12,max=72,required"`
 }
 
 // swagger:model nstj
