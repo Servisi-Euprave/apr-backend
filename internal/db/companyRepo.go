@@ -26,7 +26,7 @@ type companyRepository struct {
 }
 
 func validateColumn(col string) bool {
-	validColumns := []string{"naziv", "vlasnik", "PIB", "maticniBroj", "mesto", "sediste"}
+	validColumns := []string{"naziv", "vlasnik", "PIB", "maticniBroj", "mesto"}
 	for _, valCol := range validColumns {
 		if col == valCol {
 			return true

@@ -21,7 +21,7 @@ type Company struct {
 	//username of the person who is the owner of the company
 	//Example: Južnobačka Oblast
 	//Read Only: true
-	Vlasnik string `json:"vlasnik"`
+	Vlasnik string `json:"vlasnik" binding:"required"`
 	// Unique number which identifies the company for taxes.
 	// Required: true
 	// Example: 15
@@ -60,7 +60,7 @@ type Company struct {
 	// Example: EDUKACIJA
 	Delatnost Delatnost `json:"delatnost" binding:"required"`
 	// Required: true
-	Sediste Nstj `json:"sediste"`
+	Sediste Nstj `json:"sediste" binding:"required"`
 }
 
 // swagger:model nstj
