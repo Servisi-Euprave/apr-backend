@@ -22,7 +22,7 @@ type Company struct {
 	//JMBG of the person who is the owner of the company
 	//Example: 1234567891234
 	//Read Only: true
-	Vlasnik string `json:"vlasnik" binding:"required,len=13"`
+	Vlasnik Person `json:"vlasnik,omitempty"`
 	// Unique number which identifies the company for taxes.
 	// Required: true
 	// Example: 15

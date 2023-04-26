@@ -21,10 +21,10 @@ type Person struct {
 	// Required: true
 	// Maximum length: 100
 	// Example: Petar
-	Name string `json:"name"     binding:"required,max=100"`
+	Name string `json:"name,omitempty"`
 	// Required: true
 	// Maximum length: 100
 	// Example: Petrovic
-	Lastname string `json:"lastname" binding:"required,max=100"`
-	Jmbg     string `json:"jmbg"     binding:"number,len=13,required"`
+	Lastname string `json:"lastname,omitempty"`
+	Jmbg     string `json:"jmbg" binding:"number,len=13,required"`
 }

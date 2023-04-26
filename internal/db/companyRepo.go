@@ -34,10 +34,12 @@ type companyRepository struct {
 // FindOne implements CompanyRepository
 func (cr companyRepository) FindOne(pib int) (model.Company, error) {
 	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista,
-    postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv
+    postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv, p.name, p.lastname
     FROM company c
     LEFT JOIN NSTJ n ON c.sediste = n.oznaka
-    WHERE c.PIB = ?`
+    LEFT JOIN person p ON p.jmbg = c.vlasnik
+    WHERE (c.PIB = ?)
+    AND (likvidirana = 0)`
 
 	stmt, err := cr.db.Prepare(query)
 	if err != nil {
@@ -46,7 +48,7 @@ func (cr companyRepository) FindOne(pib int) (model.Company, error) {
 	}
 
 	var company model.Company
-	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Delatnost, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Delatnost, &company.Vlasnik.Jmbg, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv, &company.Vlasnik.Name, &company.Vlasnik.Lastname)
 	if err == sql.ErrNoRows {
 		return model.Company{}, fmt.Errorf("Company with PIB %d not found: %w", pib, NoSuchPibError)
 	}
@@ -61,7 +63,7 @@ func (cr companyRepository) FindOne(pib int) (model.Company, error) {
 func (cr companyRepository) FindOneCredentials(pib int) (model.Company, error) {
 	query := `SELECT c.password
     FROM company c
-    WHERE c.PIB = ?`
+    WHERE (c.PIB = ?) AND (likvidirana = 0) `
 
 	stmt, err := cr.db.Prepare(query)
 	if err != nil {
@@ -99,6 +101,7 @@ func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.C
         WHERE (? = "" OR delatnost = ?)
         AND (? = "" OR sediste = ?)
         AND (? = "" OR mesto = ?)
+        AND (likvidirana = 0)
         ORDER BY `
 	valid := validateColumn(filter.OrderBy)
 	if !valid {
@@ -123,7 +126,7 @@ func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.C
 	companies := make([]model.Company, 0, 50)
 	for rows.Next() {
 		var company model.Company
-		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik.Jmbg, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
 		if err != nil {
 			return companies, fmt.Errorf("%w: couldn't scan company %#v", DatabaseError, company)
 		}
@@ -140,9 +143,9 @@ func (cr companyRepository) SaveCompany(com *model.Company) error {
 	}
 	defer tx.Rollback()
 
-	_, err = cr.personRepo.GetOne(com.Vlasnik, tx)
+	_, err = cr.personRepo.GetOne(com.Vlasnik.Jmbg, tx)
 	if err != nil {
-		return fmt.Errorf("Error getting user with JMBG %s: %w", com.Vlasnik, NoSuchJmbgError)
+		return fmt.Errorf("Error getting user with JMBG %s: %w", com.Vlasnik.Jmbg, NoSuchJmbgError)
 	}
 
 	stmt, err := tx.Prepare(`INSERT INTO company
@@ -154,7 +157,7 @@ func (cr companyRepository) SaveCompany(com *model.Company) error {
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Exec(com.Delatnost, com.Vlasnik, com.Naziv, com.AdresaSedista, com.PostanskiBroj, com.Mesto, com.Sediste.Oznaka, com.Password)
+	res, err := stmt.Exec(com.Delatnost, com.Vlasnik.Jmbg, com.Naziv, com.AdresaSedista, com.PostanskiBroj, com.Mesto, com.Sediste.Oznaka, com.Password)
 	if err != nil {
 		log.Printf("Insert error: %s", err.Error())
 		return fmt.Errorf("%w", DatabaseError)
