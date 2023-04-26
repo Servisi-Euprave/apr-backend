@@ -3,6 +3,7 @@ package controllers
 import (
 	"apr-backend/client"
 	"apr-backend/internal/auth"
+	"apr-backend/internal/db"
 	"apr-backend/internal/model"
 	"apr-backend/internal/services"
 	"log"
@@ -43,7 +44,7 @@ func (controller AuthController) Login(c *gin.Context) {
 	}
 	if err := controller.authServ.CheckCredentials(creds); err != nil {
 		switch err {
-		case services.DatabaseError:
+		case db.DatabaseError:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		default:
@@ -57,7 +58,7 @@ func (controller AuthController) Login(c *gin.Context) {
 		aud = client.Apr
 	}
 
-	token, err := controller.jwtGenerator.GenerateAndSignJWT(creds.Username, aud)
+	token, err := controller.jwtGenerator.GenerateAndSignJWT(creds.PIB, aud)
 	if err != nil {
 		log.Printf("error: %s\n", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})

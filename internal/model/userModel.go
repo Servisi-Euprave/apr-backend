@@ -12,42 +12,19 @@ var UserErrors = map[string]string{
 	"Password": "Must be between 12 and 72 characters",
 }
 
-// User
+// Person
 //
-// User represents a physical person who is registered in this service.
-// APR service stores user credentials and personal data.
+// Person represents a physical person.
 //
 //swagger:model user
-type User struct {
-	// Example: +381123123
-	Phone string `json:"phone,omitempty" binding:"omitempty,e164"`
-	// Example: user@example.com
-	Email string `json:"email"    binding:"omitempty,email"`
-	// Required: true
-	// Example: MALE
-	Sex string `json:"sex"      binding:"sex"`
-	// Maximum length: 100
-	// Example: Dositejeva 15
-	Address string `json:"address,omitempty" binding:"omitempty,max=100"`
+type Person struct {
 	// Required: true
 	// Maximum length: 100
 	// Example: Petar
-	Name string `json:"name"     binding:"required,max=100"`
+	Name string `json:"name,omitempty"`
 	// Required: true
 	// Maximum length: 100
 	// Example: Petrovic
-	Lastname string `json:"lastname" binding:"required,max=100"`
-	// Required: true
-	// Minimum length: 12
-	// Maximum length: 72
-	Password string `json:"password" binding:"min=12,max=72,required"`
-	// Required: true
-	// Pattern: ^[a-zA-Z0-9]{4,20}$
-	// Unique: true
-	Username string `json:"username" binding:"alphanum,min=4,max=20,required"`
-	// Required: true
-	// Pattern: ^\13{8}$
-	// Unique: true
-	// Example: 1234567891234
-	Jmbg string `json:"jmbg"     binding:"number,len=13,required"`
+	Lastname string `json:"lastname,omitempty"`
+	Jmbg     string `json:"jmbg" binding:"number,len=13,required"`
 }

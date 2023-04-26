@@ -9,24 +9,82 @@ import (
 )
 
 var InvalidFilter = errors.New("Invalid filter")
+var NoSuchPibError = errors.New("PIB not found in database")
 
-func NewCompanyRepository(db *sql.DB) CompanyRepository {
+func NewCompanyRepository(db *sql.DB, personRepo PersonRepository) CompanyRepository {
 	return companyRepository{
-		db: db,
+		db:         db,
+		personRepo: personRepo,
 	}
 }
 
 type CompanyRepository interface {
-	SaveCompany(com model.Company) error
+	// Saves a company, making sure that person with JMBG already exists in the db
+	SaveCompany(com *model.Company) error
 	FindCompanies(filter model.CompanyFilter) ([]model.Company, error)
+	FindOne(pib int) (model.Company, error)
+	FindOneCredentials(pib int) (model.Company, error)
 }
 
 type companyRepository struct {
-	db *sql.DB
+	db         *sql.DB
+	personRepo PersonRepository
+}
+
+// FindOne implements CompanyRepository
+func (cr companyRepository) FindOne(pib int) (model.Company, error) {
+	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista,
+    postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv, p.name, p.lastname
+    FROM company c
+    LEFT JOIN NSTJ n ON c.sediste = n.oznaka
+    LEFT JOIN person p ON p.jmbg = c.vlasnik
+    WHERE (c.PIB = ?)
+    AND (likvidirana = 0)`
+
+	stmt, err := cr.db.Prepare(query)
+	if err != nil {
+		log.Printf("err: %s\n", err.Error())
+		return model.Company{}, fmt.Errorf("Error creating prepared statement: %w", DatabaseError)
+	}
+
+	var company model.Company
+	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Delatnost, &company.Vlasnik.Jmbg, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv, &company.Vlasnik.Name, &company.Vlasnik.Lastname)
+	if err == sql.ErrNoRows {
+		return model.Company{}, fmt.Errorf("Company with PIB %d not found: %w", pib, NoSuchPibError)
+	}
+	if err != nil {
+		log.Printf("Error getting company with pib %d: %s", pib, err.Error())
+		return model.Company{}, DatabaseError
+	}
+	return company, nil
+}
+
+// FindOne implements CompanyRepository
+func (cr companyRepository) FindOneCredentials(pib int) (model.Company, error) {
+	query := `SELECT c.password
+    FROM company c
+    WHERE (c.PIB = ?) AND (likvidirana = 0) `
+
+	stmt, err := cr.db.Prepare(query)
+	if err != nil {
+		log.Printf("Error creating prepared statement: %s\n", err.Error())
+		return model.Company{}, fmt.Errorf("Error creating prepared statement: %w", DatabaseError)
+	}
+
+	var company model.Company
+	err = stmt.QueryRow(pib).Scan(&company.Password)
+	if err == sql.ErrNoRows {
+		return model.Company{}, fmt.Errorf("Company with PIB %d not found: %w", pib, NoSuchPibError)
+	}
+	if err != nil {
+		log.Printf("Error getting company with pib %d: %s", pib, err.Error())
+		return model.Company{}, DatabaseError
+	}
+	return company, nil
 }
 
 func validateColumn(col string) bool {
-	validColumns := []string{"naziv", "vlasnik", "PIB", "maticniBroj", "mesto"}
+	validColumns := []string{"naziv", "vlasnik", "PIB", "mesto"}
 	for _, valCol := range validColumns {
 		if col == valCol {
 			return true
@@ -37,12 +95,13 @@ func validateColumn(col string) bool {
 
 // FindCompanies implements CompanyRepository
 func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.Company, error) {
-	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista, postanskiBroj, mesto, maticniBroj, n.oznaka, n.naziv as nstjNaziv
+	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista, postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv
         FROM company c
         LEFT JOIN NSTJ n ON c.sediste = n.oznaka 
         WHERE (? = "" OR delatnost = ?)
         AND (? = "" OR sediste = ?)
         AND (? = "" OR mesto = ?)
+        AND (likvidirana = 0)
         ORDER BY `
 	valid := validateColumn(filter.OrderBy)
 	if !valid {
@@ -67,7 +126,7 @@ func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.C
 	companies := make([]model.Company, 0, 50)
 	for rows.Next() {
 		var company model.Company
-		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.MaticniBroj, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik.Jmbg, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
 		if err != nil {
 			return companies, fmt.Errorf("%w: couldn't scan company %#v", DatabaseError, company)
 		}
@@ -77,20 +136,40 @@ func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.C
 }
 
 // SaveCompany implements CompanyRepository
-func (cr companyRepository) SaveCompany(com model.Company) error {
-	stmt, err := cr.db.Prepare(`INSERT INTO company
-        (PIB, delatnost, vlasnik, naziv, adresaSedista, postanskiBroj, mesto, sediste, maticniBroj)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);`)
+func (cr companyRepository) SaveCompany(com *model.Company) error {
+	tx, err := cr.db.Begin()
+	if err != nil {
+		return DatabaseError
+	}
+	defer tx.Rollback()
+
+	_, err = cr.personRepo.GetOne(com.Vlasnik.Jmbg, tx)
+	if err != nil {
+		return fmt.Errorf("Error getting user with JMBG %s: %w", com.Vlasnik.Jmbg, NoSuchJmbgError)
+	}
+
+	stmt, err := tx.Prepare(`INSERT INTO company
+        (delatnost, vlasnik, naziv, adresaSedista, postanskiBroj, mesto, sediste, password)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?);`)
 	if err != nil {
 		log.Printf("Error when creating prepared statement: %s", err.Error())
 		return fmt.Errorf("%w", DatabaseError)
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(com.PIB, com.Delatnost, com.Vlasnik, com.Naziv, com.AdresaSedista, com.PostanskiBroj, com.Mesto, com.Sediste.Oznaka, com.MaticniBroj)
+	res, err := stmt.Exec(com.Delatnost, com.Vlasnik.Jmbg, com.Naziv, com.AdresaSedista, com.PostanskiBroj, com.Mesto, com.Sediste.Oznaka, com.Password)
 	if err != nil {
 		log.Printf("Insert error: %s", err.Error())
 		return fmt.Errorf("%w", DatabaseError)
 	}
+	pib, err := res.LastInsertId()
+
+	com.PIB = int(pib)
+
+	if err != nil {
+		return fmt.Errorf("Error when getting PIB of new company: %w", DatabaseError)
+	}
+
+	tx.Commit()
 	return nil
 }

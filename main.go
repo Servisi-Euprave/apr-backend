@@ -23,7 +23,6 @@
 package main
 
 import (
-	"apr-backend/client"
 	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
@@ -86,9 +85,9 @@ func main() {
 		v.RegisterValidation("sex", model.ValidateSex)
 	}
 
-	userRepo := db.NewUserRepo(mysqlDb)
-	authServ := services.NewAuthService(userRepo)
-	userServ := services.NewUserService(userRepo)
+	userRepo := db.NewPersonRepo(mysqlDb)
+	comRepo := db.NewCompanyRepository(mysqlDb, userRepo)
+	authServ := services.NewAuthService(comRepo)
 
 	privateKey, err := auth.ReadRSAPrivateKeyFromFile(rsaKeyFile)
 	if err != nil {
@@ -97,28 +96,24 @@ func main() {
 	}
 	jwtGenerator := auth.NewJwtGenerator(privateKey)
 	authCtr := controllers.NewAuthController(authServ, jwtGenerator)
-	userCtr := controllers.NewUserController(userServ, jwtGenerator)
 
-	comRepo := db.NewCompanyRepository(mysqlDb)
 	comServ := services.NewCompanyService(comRepo)
-	comCtr := controllers.NewCompanyController(comServ)
+	comCtr := controllers.NewCompanyController(comServ, jwtGenerator)
+
+	nstjRepo := db.NewNstjRepository(mysqlDb)
+	nstjService := services.NewNstjService(nstjRepo)
+	nstjCtr := controllers.NewNstjController(nstjService)
 
 	router.POST("/api/auth/login/", authCtr.Login)
-	router.POST("/api/user/", userCtr.RegisterUser)
-	userGroup := router.Group("/api/user")
-	{
-		userGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
-		userGroup.GET("/:username", userCtr.GetUserByUsername)
-	}
-
-	authComGroup := router.Group("/api/company/")
-	{
-		authComGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
-		authComGroup.POST("/", comCtr.CreateCompany)
-	}
 	comGroup := router.Group("/api/company/")
 	{
+		comGroup.POST("/", comCtr.CreateCompany)
 		comGroup.GET("/", comCtr.FindCompanies)
+		comGroup.GET("/:pib", comCtr.FindOne)
+	}
+	nstjGroup := router.Group("/api/nstj/")
+	{
+		nstjGroup.GET("/", nstjCtr.FindAll)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}
