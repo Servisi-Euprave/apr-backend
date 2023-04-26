@@ -7,6 +7,7 @@ import (
 	"apr-backend/internal/model"
 	"apr-backend/internal/services"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,20 +19,20 @@ import (
 
 // Response on successful login or registration, returns a valid JWT used for
 // authentication.
-// swagger:response
+// swagger:response jwtRes
 type JwtResponse struct {
 	// The JWT
 	Jwt string `json:"jwt"`
 }
 
 // Error is used to specify what kind of error occured when processing request.
-// swagger:response
+// swagger:response errRes
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
 // Error is used to specify field errors on struct.
-// swagger:response
+// swagger:response invalidBodyRes
 type InvalidBodyResponse struct {
 	ValidationErrors map[string]string
 }
@@ -66,13 +67,6 @@ func NewCompanyController(comServ services.CompanyService, jwtGen auth.JwtGenera
 // 500:
 // This text will appear as description of your response body.
 func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
-	principal := c.GetString(client.Principal)
-	if principal == "" {
-		log.Printf("Principal wasn't set in gin context\n")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
 	var company model.Company
 	if err := c.ShouldBindWith(&company, binding.JSON); err != nil {
 		errs, ok := err.(validator.ValidationErrors)
@@ -93,7 +87,6 @@ func (companyCtr CompanyController) CreateCompany(c *gin.Context) {
 		return
 	}
 
-	company.Vlasnik = principal
 	err := companyCtr.comServ.SaveCompany(&company)
 	if err != nil {
 		log.Printf("Couldn't save company: %s", err.Error())
@@ -205,4 +198,29 @@ func (companyCtr CompanyController) FindCompanies(c *gin.Context) {
 
 	c.JSON(http.StatusOK, companies)
 	return
+}
+
+// swagger:route GET /api/company/:pib company FindOne
+// Finds one company by its pib
+// Responses:
+// 200: company
+// 500: errRes
+func (comCtr CompanyController) FindOne(c *gin.Context) {
+	pibParam := c.Param("pib")
+	pib, err := strconv.Atoi(pibParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: fmt.Sprintf("Provided pib %s is invalid", pibParam)})
+		return
+	}
+
+	company, err := comCtr.comServ.FindOne(pib)
+	if errors.Is(err, db.NoSuchPibError) {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: fmt.Sprintf("Couldnt' find company with pib %s", pibParam)})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, company)
 }

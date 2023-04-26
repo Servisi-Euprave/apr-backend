@@ -11,6 +11,7 @@ import (
 type CompanyService interface {
 	SaveCompany(com *model.Company) error
 	FindCompanies(filter model.CompanyFilter) ([]model.Company, error)
+	FindOne(pib int) (model.Company, error)
 }
 
 const passwordCost = 12
@@ -37,4 +38,8 @@ func (cs companyService) SaveCompany(com *model.Company) error {
 	}
 	com.Password = string(pass)
 	return cs.comRepo.SaveCompany(com)
+}
+
+func (cs companyService) FindOne(pib int) (model.Company, error) {
+	return cs.comRepo.FindOne(pib)
 }

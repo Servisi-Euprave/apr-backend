@@ -46,7 +46,7 @@ func (cr companyRepository) FindOne(pib int) (model.Company, error) {
 	}
 
 	var company model.Company
-	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+	err = stmt.QueryRow(pib).Scan(&company.PIB, &company.Delatnost, &company.Vlasnik, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
 	if err == sql.ErrNoRows {
 		return model.Company{}, fmt.Errorf("Company with PIB %d not found: %w", pib, NoSuchPibError)
 	}
@@ -142,12 +142,12 @@ func (cr companyRepository) SaveCompany(com *model.Company) error {
 
 	_, err = cr.personRepo.GetOne(com.Vlasnik, tx)
 	if err != nil {
-		return fmt.Errorf("Error getting user with JMBG %s: %w", com.Vlasnik, err)
+		return fmt.Errorf("Error getting user with JMBG %s: %w", com.Vlasnik, NoSuchJmbgError)
 	}
 
 	stmt, err := tx.Prepare(`INSERT INTO company
         (delatnost, vlasnik, naziv, adresaSedista, postanskiBroj, mesto, sediste, password)
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);`)
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?);`)
 	if err != nil {
 		log.Printf("Error when creating prepared statement: %s", err.Error())
 		return fmt.Errorf("%w", DatabaseError)

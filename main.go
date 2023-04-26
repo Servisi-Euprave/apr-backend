@@ -85,7 +85,7 @@ func main() {
 		v.RegisterValidation("sex", model.ValidateSex)
 	}
 
-	userRepo := db.NewUserRepo(mysqlDb)
+	userRepo := db.NewPersonRepo(mysqlDb)
 	comRepo := db.NewCompanyRepository(mysqlDb, userRepo)
 	authServ := services.NewAuthService(comRepo)
 
@@ -100,11 +100,20 @@ func main() {
 	comServ := services.NewCompanyService(comRepo)
 	comCtr := controllers.NewCompanyController(comServ, jwtGenerator)
 
+	nstjRepo := db.NewNstjRepository(mysqlDb)
+	nstjService := services.NewNstjService(nstjRepo)
+	nstjCtr := controllers.NewNstjController(nstjService)
+
 	router.POST("/api/auth/login/", authCtr.Login)
 	comGroup := router.Group("/api/company/")
 	{
 		comGroup.POST("/", comCtr.CreateCompany)
 		comGroup.GET("/", comCtr.FindCompanies)
+		comGroup.GET("/:pib", comCtr.FindOne)
+	}
+	nstjGroup := router.Group("/api/nstj/")
+	{
+		nstjGroup.GET("/", nstjCtr.FindAll)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}

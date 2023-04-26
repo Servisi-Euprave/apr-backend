@@ -2,12 +2,13 @@ package model
 
 var CompanyErrors = map[string]string{
 	"PIB":           "PIB is required",
-	"MaticniBroj":   "Maticni Broj must be 8 numbers long",
 	"Naziv":         "Has to be between 1 and 100 characters long",
 	"AdresaSedista": "Has to be between 1 and 100 characters long",
 	"Mesto":         "Has to be between 1 and 100 characters long",
 	"PostanskiBroj": "Has to be a number shorter than 20 characters",
 	"Delatnost":     "Delatnost has to be one of the enum values",
+	"Vlasnik":       "JMBG is required",
+	"Sediste":       "Sediste is required",
 }
 
 // Company
@@ -21,18 +22,12 @@ type Company struct {
 	//JMBG of the person who is the owner of the company
 	//Example: 1234567891234
 	//Read Only: true
-	Vlasnik string `json:"vlasnik"`
+	Vlasnik string `json:"vlasnik" binding:"required,len=13"`
 	// Unique number which identifies the company for taxes.
 	// Required: true
 	// Example: 15
 	// Unique: true
 	PIB int `json:"pib"`
-	// Unique number which identifies company in the register.
-	// Required: true
-	// Pattern: ^\d{8}$
-	// Example: 12345678
-	// Unique: true
-	MaticniBroj int `json:"maticniBroj"`
 	// Full name of the company.
 	// Required: true
 	// Minimum length: 1
@@ -66,6 +61,8 @@ type Company struct {
 	// Minimum length: 12
 	// Maximum length: 72
 	Password string `json:"password,omitempty" binding:"min=12,max=72,required"`
+	// True if company is likvidirana
+	Likvidirana bool `json:"likvidirana"`
 }
 
 // swagger:model nstj
