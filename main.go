@@ -40,6 +40,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -105,6 +106,14 @@ func main() {
 	nstjCtr := controllers.NewNstjController(nstjService)
 
 	router.POST("/api/auth/login/", authCtr.Login)
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:4200", "http://localhost:4201", "http://localhost:4202"},
+		AllowMethods:     []string{"POST", "GET"},
+		AllowHeaders:     []string{"Origin"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	comGroup := router.Group("/api/company/")
 	{
 		comGroup.POST("/", comCtr.CreateCompany)
