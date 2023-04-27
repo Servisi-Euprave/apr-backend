@@ -95,9 +95,11 @@ func validateColumn(col string) bool {
 
 // FindCompanies implements CompanyRepository
 func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.Company, error) {
-	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista, postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv
+	query := `SELECT PIB, delatnost, vlasnik, c.naziv, adresaSedista, postanskiBroj, mesto, n.oznaka, n.naziv as nstjNaziv,
+        p.name, p.lastname
         FROM company c
         LEFT JOIN NSTJ n ON c.sediste = n.oznaka 
+        LEFT JOIN person p ON p.jmbg = c.vlasnik
         WHERE (? = "" OR delatnost = ?)
         AND (? = "" OR sediste = ?)
         AND (? = "" OR mesto = ?)
@@ -126,7 +128,7 @@ func (cr companyRepository) FindCompanies(filter model.CompanyFilter) ([]model.C
 	companies := make([]model.Company, 0, 50)
 	for rows.Next() {
 		var company model.Company
-		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik.Jmbg, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv)
+		err := rows.Scan(&company.PIB, &company.Delatnost, &company.Vlasnik.Jmbg, &company.Naziv, &company.AdresaSedista, &company.PostanskiBroj, &company.Mesto, &company.Sediste.Oznaka, &company.Sediste.Naziv, &company.Vlasnik.Name, &company.Vlasnik.Lastname)
 		if err != nil {
 			return companies, fmt.Errorf("%w: couldn't scan company %#v", DatabaseError, company)
 		}
