@@ -106,15 +106,15 @@ func main() {
 	nstjService := services.NewNstjService(nstjRepo)
 	nstjCtr := controllers.NewNstjController(nstjService)
 
-	router.POST("/api/auth/login/", authCtr.Login)
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:4200", "http://localhost:4201", "http://localhost:4202"},
-		AllowMethods:     []string{"POST", "GET"},
-		AllowHeaders:     []string{"Origin"},
-		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "User-Agent", "Referrer", "Host", "Token"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	router.POST("/api/auth/login/", authCtr.Login)
 	comGroup := router.Group("/api/company/")
 	{
 		comGroup.POST("/", comCtr.CreateCompany)
