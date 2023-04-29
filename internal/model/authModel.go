@@ -14,7 +14,4 @@ type CredentialsDto struct {
 	PIB int `json:"pib"`
 	// Required: true
 	Password string `json:"password"`
-	// Name of service used in aud claim in the JWT.
-	// Example: javne_nabavke
-	Service string `json:"service,omitempty"`
 }

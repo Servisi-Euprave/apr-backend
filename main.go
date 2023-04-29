@@ -23,6 +23,7 @@
 package main
 
 import (
+	"apr-backend/client"
 	"apr-backend/internal/auth"
 	"apr-backend/internal/controllers"
 	"apr-backend/internal/db"
@@ -110,7 +111,7 @@ func main() {
 		AllowOrigins:     []string{"http://localhost:4200", "http://localhost:4201", "http://localhost:4202"},
 		AllowMethods:     []string{"POST", "GET"},
 		AllowHeaders:     []string{"Origin"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
@@ -123,6 +124,11 @@ func main() {
 	nstjGroup := router.Group("/api/nstj/")
 	{
 		nstjGroup.GET("/", nstjCtr.FindAll)
+	}
+	authGroup := router.Group("/")
+	authGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
+	{
+		authGroup.GET("/api/auth/login/:service", authCtr.SSOLogin)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}

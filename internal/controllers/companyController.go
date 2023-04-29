@@ -49,7 +49,7 @@ func NewCompanyController(comServ services.CompanyService, jwtGen auth.JwtGenera
 	}
 }
 
-// swagger:route POST /api/companies/ company CreateCompany
+// swagger:route POST /api/company/ company CreateCompany
 // Registers a new company for logged-in user.
 //
 // Parameters:
@@ -115,7 +115,7 @@ const (
 	naziv int = iota
 )
 
-// swagger:route GET /api/companies/ company FindCompanies
+// swagger:route GET /api/company/ company FindCompanies
 // Filters, sorts and paginates companies
 //
 // Parameters:
