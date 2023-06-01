@@ -24,11 +24,38 @@ type CompanyRepository interface {
 	FindCompanies(filter model.CompanyFilter) ([]model.Company, error)
 	FindOne(pib int) (model.Company, error)
 	FindOneCredentials(pib int) (model.Company, error)
+	LiquidateById(pib int) error
 }
 
 type companyRepository struct {
 	db         *sql.DB
 	personRepo PersonRepository
+}
+
+// LiquidateById implements CompanyRepository
+func (cr companyRepository) LiquidateById(pib int) error {
+	query := `UPDATE company SET likvidirana = 1 WHERE PIB = ?`
+	stmt, err := cr.db.Prepare(query)
+	if err != nil {
+		log.Printf("err: %s\n", err.Error())
+		return fmt.Errorf("Error creating prepared statement: %w", DatabaseError)
+	}
+
+	res, err := stmt.Exec(pib)
+	if err != nil {
+		log.Printf("err: %s\n", err.Error())
+		return fmt.Errorf("Error executing query: %w", DatabaseError)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("Error getting rows affected %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("Cannot delete company with pib %d: %w", pib, NoSuchPibError)
+	}
+
+	return nil
 }
 
 // FindOne implements CompanyRepository

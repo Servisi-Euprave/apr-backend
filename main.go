@@ -129,6 +129,7 @@ func main() {
 	authGroup.Use(client.CheckAuth(jwtGenerator, client.Apr))
 	{
 		authGroup.GET("/api/auth/login/:service", authCtr.SSOLogin)
+		authGroup.DELETE("/api/company/:pib", comCtr.LiquidateById)
 	}
 
 	srv := &http.Server{Addr: "0.0.0.0:7887", Handler: router}

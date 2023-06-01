@@ -12,6 +12,7 @@ type CompanyService interface {
 	SaveCompany(com *model.Company) error
 	FindCompanies(filter model.CompanyFilter) ([]model.Company, error)
 	FindOne(pib int) (model.Company, error)
+	LiquidateById(pib int) error
 }
 
 const passwordCost = 12
@@ -24,6 +25,11 @@ func NewCompanyService(comRepo db.CompanyRepository) CompanyService {
 
 type companyService struct {
 	comRepo db.CompanyRepository
+}
+
+// LiquidateById implements CompanyService
+func (cs companyService) LiquidateById(pib int) error {
+	return cs.comRepo.LiquidateById(pib)
 }
 
 // FindCompanies implements CompanyService

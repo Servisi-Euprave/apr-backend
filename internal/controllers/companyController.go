@@ -31,6 +31,12 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+// Specifies what was successful
+// swagger:response succRes
+type SuccessResponse struct {
+	Success string `json:"success"`
+}
+
 // Error is used to specify field errors on struct.
 // swagger:response invalidBodyRes
 type InvalidBodyResponse struct {
@@ -223,4 +229,41 @@ func (comCtr CompanyController) FindOne(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, company)
+}
+
+// swagger:route DELETE /api/company/:pib company LiquidateById
+// Liquidates company
+// Responses:
+// 200: succRes
+// 500: errRes
+func (comCtr CompanyController) LiquidateById(c *gin.Context) {
+	principal := c.GetString("principal")
+	principalPib, err := strconv.Atoi(principal)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: fmt.Sprintf("Provided pib %s is invalid", principal)})
+		return
+	}
+
+	pibParam := c.Param("pib")
+	pib, err := strconv.Atoi(pibParam)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, ErrorResponse{Error: fmt.Sprintf("Provided pib %s is invalid", pibParam)})
+		return
+	}
+
+	if pib != principalPib {
+		c.AbortWithStatusJSON(http.StatusForbidden, ErrorResponse{Error: fmt.Sprintf("%d is not the owner of %d company", pib, principalPib)})
+		return
+	}
+
+	err = comCtr.comServ.LiquidateById(pib)
+	if errors.Is(err, db.NoSuchPibError) {
+		c.AbortWithStatusJSON(http.StatusNotFound, ErrorResponse{Error: fmt.Sprintf("Couldnt' find company with pib %s", pibParam)})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse{Success: "Company liquidated"})
 }
